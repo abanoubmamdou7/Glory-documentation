@@ -6,7 +6,7 @@ verified against a running server — nothing is speculative.
 
 - **Base URL (dev):** `http://localhost:3000` — no global prefix.
 - **Swagger UI:** `GET /docs` (interactive, always in sync with the code).
-- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 107
+- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 121
   requests) + `postman/GloryGym-MobileApp.postman_collection.json` (mobile
   only) + `postman/GloryGym.postman_environment.json`.
 
@@ -18,6 +18,8 @@ verified against a running server — nothing is speculative.
 | --- | --- |
 | [frontend/01-auth.md](frontend/01-auth.md) | Employee login, tokens, roles & permissions model |
 | [frontend/02-team-management.md](frontend/02-team-management.md) | Admins / Staff / Instructors screens, Add-Employee wizard, uploads, catalogs |
+| [frontend/03-checkins.md](frontend/03-checkins.md) | Front-desk QR scanning for gym entry |
+| [frontend/04-video-library.md](frontend/04-video-library.md) | Videos Library: grid/search, Add/Edit Video, Vimeo upload |
 
 ### `mobile/` — Mobile app developers
 
@@ -27,6 +29,7 @@ verified against a running server — nothing is speculative.
 | [mobile/02-profile.md](mobile/02-profile.md) | Settings, profile, change email/password, notifications, delete account, subscriptions, body records, avatar upload |
 | [mobile/03-family.md](mobile/03-family.md) | Family members CRUD |
 | [mobile/04-content.md](mobile/04-content.md) | About pages, FAQs, contact links, complaints & suggestions |
+| [mobile/05-bookings-checkin.md](mobile/05-bookings-checkin.md) | Gym-entry QR check-in, bookings (cancel/check-in), post-session rating, notification inbox |
 
 ---
 
@@ -164,4 +167,3 @@ api.interceptors.response.use(
 
 Always display `error.response.data.message`; if `errors[]` exists (validation),
 show those under the matching fields.
-# Glory-documentation
