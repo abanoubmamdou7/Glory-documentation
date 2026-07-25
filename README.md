@@ -20,6 +20,7 @@ verified against a running server — nothing is speculative.
 | [frontend/02-team-management.md](frontend/02-team-management.md) | Admins / Staff / Instructors screens, Add-Employee wizard, uploads, catalogs |
 | [frontend/03-checkins.md](frontend/03-checkins.md) | Front-desk QR scanning for gym entry |
 | [frontend/04-video-library.md](frontend/04-video-library.md) | Videos Library: grid/search, Add/Edit Video, Vimeo upload |
+| [frontend/05-follow-up-programs.md](frontend/05-follow-up-programs.md) | Follow-Up Programs: list/stats/export, settings toggles, instructor rotation |
 
 ### `mobile/` — Mobile app developers
 
@@ -30,6 +31,7 @@ verified against a running server — nothing is speculative.
 | [mobile/03-family.md](mobile/03-family.md) | Family members CRUD |
 | [mobile/04-content.md](mobile/04-content.md) | About pages, FAQs, contact links, complaints & suggestions |
 | [mobile/05-bookings-checkin.md](mobile/05-bookings-checkin.md) | Gym-entry QR check-in, bookings (cancel/check-in), post-session rating, notification inbox |
+| [mobile/06-workouts.md](mobile/06-workouts.md) | My Exercises: list, exercise detail with stages/videos, logging weight |
 
 ---
 
