@@ -27,6 +27,11 @@ sequenceDiagram
   Note over App: next logins: status → completed:true → straight to home
 ```
 
+- **Shortcut:** the login response's `member` object (and
+  `GET /mobile/auth/me`) now carries **`onboardingCompleted: boolean`** — you
+  can route straight from the login response without any extra call. The
+  `/status` endpoint remains useful for the `prefill` values when the answer
+  is `false`.
 - The wizard state lives **client-side** — nothing is sent until the final
   step submits everything in one `POST`.
 - Submission is **one-time**: a second `POST` → `409` ("already completed").

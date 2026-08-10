@@ -4,11 +4,13 @@
 > here. Covers the exercises list, the exercise detail screen, and the
 > "اضافة وزن" (Add Weight) action.
 >
-> ⚠ **Scope note:** what exercise gets assigned to a member, its stages, and
-> its videos are all decided by the gym (staff scheduling / AI evaluation,
-> dashboard side — not built yet). This module only covers what the member
+> ⚠ **Scope note:** creating a Workout program, adding its stages/videos, and
+> assigning it to a member are all **dashboard-side** actions — see
+> [../frontend/06-workouts.md](../frontend/06-workouts.md)
+> (`POST /workouts`, `PUT /workouts/:id/instructions`,
+> `POST /workout-assignments`). This module only covers what the member
 > does with an assignment that already exists: view it and log their own
-> weight. There is no create/edit endpoint for workouts or assignments.
+> weight. There is no create/edit endpoint for workouts or assignments here.
 
 | # | Method & path | Screen |
 | --- | --- | --- |

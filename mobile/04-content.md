@@ -26,6 +26,7 @@ returns one (key is case-insensitive; unknown → `404`).
 | `ABOUT` | من نحن (the "تعرف علي جلوري جيم" tab) |
 | `VALUES` | قيمنا |
 | `VISION` | رؤيتنا |
+| `MISSION` | رسالتنا |
 | `GOALS` | أهدافنا |
 | `TERMS` | الشروط والأحكام |
 | `PRIVACY` | سياسة الخصوصية |
@@ -62,27 +63,35 @@ screen (endpoint 5).
 
 ## 4. `GET /mobile/content/contact`
 
-Flat key→value map — drives **three** UI spots:
+An **ordered array** (not a key-value map) — the gym manages this list from
+the dashboard's Company Data → "Contact Us" screen, including drag-to-reorder,
+so the set of rows and their order can change at any time:
 
 ```json
-{ "success": true, "data": {
-  "social.whatsapp": "https://wa.me/2010...",
-  "social.facebook": "https://facebook.com/glorygym",
-  "social.instagram": "https://instagram.com/glorygym",
-  "social.twitter": "https://x.com/glorygym",
-  "contact.phone": "+2010...",
-  "rating.appstore": "https://apps.apple.com/app/glory-gym",
-  "rating.playstore": "https://play.google.com/store/apps/details?id=..."
-} }
+{ "success": true, "data": [
+  { "id": "...", "icon": "WHATSAPP", "labelEn": "Whatsapp", "labelAr": "واتساب", "value": "https://wa.me/2010..." },
+  { "id": "...", "icon": "INSTAGRAM", "labelEn": "Instagram", "labelAr": "انستجرام", "value": "https://instagram.com/glorygym" },
+  { "id": "...", "icon": "FACEBOOK", "labelEn": "Facebook", "labelAr": "فيسبوك", "value": "https://facebook.com/glorygym" },
+  { "id": "...", "icon": "X", "labelEn": "X", "labelAr": "إكس", "value": "https://x.com/glorygym" },
+  { "id": "...", "icon": "PHONE", "labelEn": "Phone Number", "labelAr": "رقم الهاتف", "value": "+2010..." },
+  { "id": "...", "icon": "EMAIL", "labelEn": "Email Support", "labelAr": "الدعم عبر البريد", "value": "support@glorygym.com" },
+  { "id": "...", "icon": "APP_STORE", "labelEn": "App Store", "labelAr": "آب ستور", "value": "https://apps.apple.com/app/glory-gym" },
+  { "id": "...", "icon": "GOOGLE_PLAY", "labelEn": "Google Play", "labelAr": "جوجل بلاي", "value": "https://play.google.com/store/apps/details?id=..." }
+] }
 ```
 
-- **من نحن → منصات التواصل tab:** the `social.*` rows + `contact.phone`
-  ("اتصل بنا" → `tel:` link).
-- **تواصل معنا:** same data.
-- **تقيمات التطبيق:** open `rating.appstore` / `rating.playstore` by platform.
+Renders the same array across **all three** UI spots:
+- **من نحن → منصات التواصل tab** and **تواصل معنا:** iterate the array,
+  pick the icon asset matching `icon`, use `labelAr`/`labelEn` as the row
+  title and `value` as the tappable link — `PHONE`/`EMAIL` rows open
+  `tel:`/`mailto:`, everything else opens as a URL.
+- **تقيمات التطبيق:** filter for `icon === "APP_STORE"` / `"GOOGLE_PLAY"`
+  and open the matching `value`.
 
-Treat keys defensively (skip rows whose key you don't recognize — the gym may
-add more).
+`icon` is one of `WHATSAPP`|`INSTAGRAM`|`FACEBOOK`|`X`|`EMAIL`|`PHONE`|
+`WEBSITE`|`GOOGLE_PLAY`|`APP_STORE`|`OTHER` — map each to a local asset;
+fall back to a generic icon for `OTHER`/anything unrecognized (the gym may
+add more rows with icons your build doesn't know about yet).
 
 ## 5. `POST /mobile/feedback` — "شكاوي و اقتراحات"
 

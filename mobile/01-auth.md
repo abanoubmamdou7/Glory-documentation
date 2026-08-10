@@ -121,6 +121,11 @@ match exactly as registered, digits only).
 { "accessToken": "...", "refreshToken": "...", "member": { /* same profile shape as above */ } }
 ```
 
+`member` also carries **`onboardingCompleted: boolean`** — route to the
+first-login questionnaire when `false`, straight to home when `true`
+(see [07-onboarding.md](07-onboarding.md)). `GET /mobile/auth/me` returns
+the same flag.
+
 **Errors:** `401` generic `Invalid credentials` (never reveals whether the
 account exists); `403` `Account is freezed/inactive and cannot log in`.
 

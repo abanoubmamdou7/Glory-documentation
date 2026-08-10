@@ -6,7 +6,7 @@ verified against a running server — nothing is speculative.
 
 - **Base URL (dev):** `http://localhost:3000` — no global prefix.
 - **Swagger UI:** `GET /docs` (interactive, always in sync with the code).
-- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 121
+- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 197
   requests) + `postman/GloryGym-MobileApp.postman_collection.json` (mobile
   only) + `postman/GloryGym.postman_environment.json`.
 
@@ -21,6 +21,11 @@ verified against a running server — nothing is speculative.
 | [frontend/03-checkins.md](frontend/03-checkins.md) | Front-desk QR scanning for gym entry |
 | [frontend/04-video-library.md](frontend/04-video-library.md) | Videos Library: grid/search, Add/Edit Video, Vimeo upload |
 | [frontend/05-follow-up-programs.md](frontend/05-follow-up-programs.md) | Follow-Up Programs: list/stats/export, settings toggles, instructor rotation |
+| [frontend/06-workouts.md](frontend/06-workouts.md) | Workouts: program templates + stages/videos, assigning to members |
+| [frontend/07-gym-management.md](frontend/07-gym-management.md) | Gym Management: Products (image/category/export) + Push Notifications broadcast |
+| [frontend/08-company-data.md](frontend/08-company-data.md) | Settings → Company Data: all 9 sidebar tabs — CMS pages (About/Vision/Mission/Goals/Terms/Privacy), Contact Methods (reorderable list), FAQ, Assessment Evaluation |
+| [frontend/09-instructor-dashboard.md](frontend/09-instructor-dashboard.md) | Instructor's own Dashboard home: stat cards, reservations calendar, day-detail panel, Create Reservation, members-by-remaining-days |
+| [frontend/10-coach-chat.md](frontend/10-coach-chat.md) | Coach Chat: assigning a member to an instructor (auto-creates the chat), the instructor dashboard's conversation list/history/read-state, Socket.IO send/receive |
 
 ### `mobile/` — Mobile app developers
 
@@ -32,6 +37,8 @@ verified against a running server — nothing is speculative.
 | [mobile/04-content.md](mobile/04-content.md) | About pages, FAQs, contact links, complaints & suggestions |
 | [mobile/05-bookings-checkin.md](mobile/05-bookings-checkin.md) | Gym-entry QR check-in, bookings (cancel/check-in), post-session rating, notification inbox |
 | [mobile/06-workouts.md](mobile/06-workouts.md) | My Exercises: list, exercise detail with stages/videos, logging weight |
+| [mobile/07-onboarding.md](mobile/07-onboarding.md) | First-login questionnaire (PAR-Q + intake): status, submit, read back |
+| [mobile/08-chat.md](mobile/08-chat.md) | Coach Chat: conversation list, message history, read state, Socket.IO send/receive |
 
 ---
 
