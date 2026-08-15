@@ -93,8 +93,9 @@ Panel header = the clicked date + `"{count} Reservations"`. Card mapping:
 is `null` — a reservation isn't required to have one, e.g. a bare
 assessment slot); the green "PT Sessions" badge = localized `type`; "Member
 Name" = `member.fullName`; "Date"/"Time" = split `scheduledAt` client-side;
-"Member Details" button = navigate using `member.id` (the full member
-profile screen is Phase 4, not built yet — wire this once that lands).
+"Member Details" button = navigate using `member.id` to
+`GET /members/:id` ([11-members.md](11-members.md), the "Members" nav
+item's profile screen).
 
 **Empty array** → render the empty state exactly as designed: calendar
 icon, **"No Reservations For This Day."**, and the same
@@ -134,8 +135,8 @@ exactly) + `sortOrder` (default `asc` = soonest-expiring first).
 Column mapping: "ID Number" = `memberCode`; "Members Details" = avatar +
 `fullName` + `email`; "Mobile Number" = flag (derive from
 `phoneCountryCode`) + `phoneCountryCode` + `phone`; "Remaining Days" =
-`remainingDays` + `" Days"`; "Action" (eye icon) → same caveat as "Member
-Details" above, a full member profile screen doesn't exist yet.
+`remainingDays` + `" Days"`; "Action" (eye icon) → `GET /members/:id`
+([11-members.md](11-members.md)), same as "Member Details" above.
 
 Only members with a **currently-active subscription** are returned (a
 member with none has no meaningful "remaining days" for this widget).
@@ -156,8 +157,9 @@ member with none has no meaningful "remaining days" for this widget).
 ## Other buttons on this screen (no new API)
 
 - **"+ Add New Workout"** (top of the page, separate from "Create
-  Reservations") → the already-built `POST /workouts`
-  (see [06-workouts.md](06-workouts.md)).
+  Reservations") → the "Workouts" nav item's own list + 3-step wizard, now
+  fully documented in [06-workouts.md](06-workouts.md) (confirmed against
+  its own real Figma screens).
 - **Language toggle ("Ar")**, notification bell, avatar menu → out of
   scope for this doc (standard dashboard chrome).
 

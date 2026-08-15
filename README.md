@@ -6,7 +6,7 @@ verified against a running server — nothing is speculative.
 
 - **Base URL (dev):** `http://localhost:3000` — no global prefix.
 - **Swagger UI:** `GET /docs` (interactive, always in sync with the code).
-- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 197
+- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 207
   requests) + `postman/GloryGym-MobileApp.postman_collection.json` (mobile
   only) + `postman/GloryGym.postman_environment.json`.
 
@@ -21,11 +21,12 @@ verified against a running server — nothing is speculative.
 | [frontend/03-checkins.md](frontend/03-checkins.md) | Front-desk QR scanning for gym entry |
 | [frontend/04-video-library.md](frontend/04-video-library.md) | Videos Library: grid/search, Add/Edit Video, Vimeo upload |
 | [frontend/05-follow-up-programs.md](frontend/05-follow-up-programs.md) | Follow-Up Programs: list/stats/export, settings toggles, instructor rotation |
-| [frontend/06-workouts.md](frontend/06-workouts.md) | Workouts: program templates + stages/videos, assigning to members |
+| [frontend/06-workouts.md](frontend/06-workouts.md) | Workouts: program templates + stages/videos, assigning to members — also backs the Instructor Dashboard's "Workouts" nav (list + 3-step wizard) |
 | [frontend/07-gym-management.md](frontend/07-gym-management.md) | Gym Management: Products (image/category/export) + Push Notifications broadcast |
 | [frontend/08-company-data.md](frontend/08-company-data.md) | Settings → Company Data: all 9 sidebar tabs — CMS pages (About/Vision/Mission/Goals/Terms/Privacy), Contact Methods (reorderable list), FAQ, Assessment Evaluation |
 | [frontend/09-instructor-dashboard.md](frontend/09-instructor-dashboard.md) | Instructor's own Dashboard home: stat cards, reservations calendar, day-detail panel, Create Reservation, members-by-remaining-days |
 | [frontend/10-coach-chat.md](frontend/10-coach-chat.md) | Coach Chat: assigning a member to an instructor (auto-creates the chat), the instructor dashboard's conversation list/history/read-state, Socket.IO send/receive |
+| [frontend/11-members.md](frontend/11-members.md) | Members (Instructor Dashboard): list + stat cards, profile read, In-Body Test / Body Measurements CRUD |
 
 ### `mobile/` — Mobile app developers
 
