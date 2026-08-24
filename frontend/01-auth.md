@@ -15,6 +15,9 @@ Base path: `/auth`
 | 2 | `POST /auth/refresh` | Public | Rotate refresh token → new pair |
 | 3 | `POST /auth/logout` | Bearer | Revoke a refresh token |
 | 4 | `GET /auth/me` | Bearer | Current user + permission keys |
+| 5 | `GET /auth/me/profile` | Bearer | "Settings > Profile Management" — full self profile |
+| 6 | `PATCH /auth/me/profile` | Bearer | "Edit Profile" |
+| 7 | `PATCH /auth/me/password` | Bearer | "Update Password" |
 
 ---
 
@@ -74,6 +77,50 @@ simply expires on its own (≤15 min) — also clear it locally.
 Returns the same `user` object as login (fresh from DB — status/permission
 changes apply immediately). Call it on app boot to restore the session.
 
+## 5–7. Settings → "Profile Management" (self-service, own record only)
+
+Any authenticated employee (`ADMIN`/`STAFF`/`INSTRUCTOR` — this isn't
+role-specific) can view and edit **their own** record here — **no
+`*.read`/`*.manage` permission required**, since you can always see and
+edit yourself. This is deliberately separate from the Team Management
+endpoints (`GET/PATCH /admins|staff|instructors/:id`), which manage *other*
+employees and stay permission-gated.
+
+### 5. `GET /auth/me/profile`
+
+The same fully-hydrated shape `GET /{admins|staff|instructors}/:id`
+returns (see [02-team-management.md](02-team-management.md)) — one call
+covers all four Settings tabs at once: profile fields, job info
+(department/reportingTo/branches/contract/salary), `documents[]`, and
+`shifts[]` (the Attendance table) + your own granted `permissions[]` keys.
+Filter/route to the right tab client-side; no separate call per tab.
+
+### 6. `PATCH /auth/me/profile` — "Edit Profile"
+
+Deliberately narrow — **only** personal-info fields, not job info:
+`username`, `fullName`, `phoneCountryCode`, `phone`, `gender`,
+`dateOfBirth`, `age`, `nationality`, `nationalId`, `city`, `streetName`,
+`avatarUrl` (via `POST /uploads` first). Sending anything else (e.g.
+`departmentId`, `baseSalary`, `permissions`) → `400`, whitelist-rejected —
+those stay HR-controlled via the Team Management endpoints. `email` is
+**not** self-editable either — there's no verified-change flow for
+employees yet (unlike the mobile app's OTP-based email change); changing
+it currently still requires an admin via Team Management.
+
+### 7. `PATCH /auth/me/password` — "Update Password"
+
+```json
+{ "currentPassword": "OldPass1122#", "password": "NewPass1122#", "passwordConfirm": "NewPass1122#" }
+```
+
+Unlike Team Management's admin-driven `PATCH /{base}/:id/password` (which
+resets *someone else's* password without knowing the old one), this one
+**requires your current password** — the same convention as the mobile
+app's own change-password flow. **400** if it's wrong or if
+`password`/`passwordConfirm` don't match. **200** revokes all of your
+refresh tokens (same as any password change) — you're logged out
+everywhere and re-log in with the new password.
+
 ---
 
 ## Roles & permissions — what the frontend needs to know
@@ -99,4 +146,17 @@ as the design's checkbox groups).
   **next request**, not the next login. Expect sudden `401`/`403` and handle
   them gracefully (redirect to login / show "no access").
 - Changing a user's password (via Team Management) revokes their refresh
-  tokens → their session dies at the next refresh.
+  tokens → their session dies at the next refresh. **Your own** password
+  change (§7) does the same thing — expect the current tab's next request
+  to `401` too, not just other sessions.
+
+⚠ **Documented UI note (Instructor Dashboard "Settings > Profile
+Management" screens):** the profile card header in the source mockups
+shows a *different* name/avatar/status/date ("Kristina Gislason", "Active",
+"Oct 10, 2025") than the logged-in user shown in the top-right corner and
+than the actual field values in every tab (all "Ahmed Hossam"'s own data)
+— almost certainly a stale/reused header component copied from the Team
+Management employee-profile screens (which legitimately show *another*
+employee's name there), not evidence of a second person. `GET
+/auth/me/profile` always returns **your own** record; render that header
+from the response, not from the mockup's literal text.
