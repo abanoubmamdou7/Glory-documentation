@@ -6,7 +6,7 @@ verified against a running server — nothing is speculative.
 
 - **Base URL (dev):** `http://localhost:3000` — no global prefix.
 - **Swagger UI:** `GET /docs` (interactive, always in sync with the code).
-- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 207
+- **Postman:** `postman/GloryGym.postman_collection.json` (master, all 234
   requests) + `postman/GloryGym-MobileApp.postman_collection.json` (mobile
   only) + `postman/GloryGym.postman_environment.json`.
 
@@ -27,6 +27,10 @@ verified against a running server — nothing is speculative.
 | [frontend/09-instructor-dashboard.md](frontend/09-instructor-dashboard.md) | Instructor's own Dashboard home: stat cards, reservations calendar, day-detail panel, Create Reservation, members-by-remaining-days |
 | [frontend/10-coach-chat.md](frontend/10-coach-chat.md) | Coach Chat: assigning a member to an instructor (auto-creates the chat), the instructor dashboard's conversation list/history/read-state, Socket.IO send/receive |
 | [frontend/11-members.md](frontend/11-members.md) | Members (Instructor Dashboard): list + stat cards, profile read, In-Body Test / Body Measurements CRUD |
+| [frontend/12-instructor-workouts.md](frontend/12-instructor-workouts.md) | Instructor-only view of the Workouts screens (same API as 06, instructor framing) |
+| [frontend/13-instructor-follow-up-programs.md](frontend/13-instructor-follow-up-programs.md) | Instructor-only view of Follow-Up Programs (same API as 05, instructor framing) |
+| [frontend/14-instructor-settings.md](frontend/14-instructor-settings.md) | Settings → Profile Management: an employee viewing/editing their **own** account (`/auth/me/*`) |
+| [frontend/15-sandy-ai.md](frontend/15-sandy-ai.md) | Sandy AI: the knowledge base behind the assistant (paste/import/reindex), retrieval preview, member-conversation oversight |
 
 ### `mobile/` — Mobile app developers
 
@@ -40,6 +44,7 @@ verified against a running server — nothing is speculative.
 | [mobile/06-workouts.md](mobile/06-workouts.md) | My Exercises: list, exercise detail with stages/videos, logging weight |
 | [mobile/07-onboarding.md](mobile/07-onboarding.md) | First-login questionnaire (PAR-Q + intake): status, submit, read back |
 | [mobile/08-chat.md](mobile/08-chat.md) | Coach Chat: conversation list, message history, read state, Socket.IO send/receive |
+| [mobile/09-sandy-ai.md](mobile/09-sandy-ai.md) | Sandy AI: asking the gym assistant, conversations, citations, and the refusal states (which are `200`, not errors) |
 
 ---
 
