@@ -92,8 +92,45 @@ Returns one row per event with `when` it fires, `audience`, the deep-link
 describe. **That array should always be empty**; if it isn't, you have found a
 real gap.
 
-Today: **30 events — 27 member-facing, 3 staff-facing; 22 immediate, 8
+Today: **50 events — 34 member-facing, 16 employee-facing; 32 immediate, 18
 scheduled.**
+
+### What the member can switch off (new, 2026-10-15)
+
+`GET /mobile/notifications/preferences` → `{ pushEnabled, events: [{ event, muted }] }`
+and `PATCH` the same path with `{ muted: [...] }` to **replace** the set (`[]`
+turns everything on). Build the settings screen straight off `events` — it is
+generated from the server's own catalog, so a new notification type appears in
+the list without a client release.
+
+Three things to get right:
+1. **A muted type still appears in the inbox.** Muting stops the *push*, not the
+   record — same meaning as the old all-or-nothing `pushEnabled`. Don't hide
+   muted types from the inbox list.
+2. **`BROADCAST` is not in the list and cannot be muted** — a gym-wide
+   announcement has to arrive. Sandy nudges are also absent: they have their own
+   switch at `PATCH /mobile/sandy/nudges`.
+3. **`pushEnabled` wins.** With the master switch off, nothing buzzes no matter
+   what these say — show it above the per-type list, not beside it.
+
+### Quiet hours
+
+Gym-wide, set by the dashboard at `PATCH /settings/notifications`
+(`quietHoursEnabled`, `quietHoursStart`, `quietHoursEnd` — Amman hours,
+default **22:00 → 08:00**, window wraps midnight). They apply to **scheduled**
+notifications only; transactional ones still arrive, because they answer
+something the member just did. A reminder caught by the window is **not lost** —
+it is simply sent once the window opens.
+
+### The coach's bell
+
+Staff notifications live in `GET /employee-notifications` (+ `PATCH :id/read`,
+`PATCH read-all`). They are written there **before** any push is attempted, so
+the bell is correct even for an employee who never registered a device. The
+per-employee switches on `PATCH /settings/notifications/me` now genuinely gate
+the push (`memberMessages`, `ptSessions`, `classBookings`,
+`followUpReminders`); target decisions, contract expiries and the daily brief
+have no switch and always arrive.
 
 ### Immediate
 
@@ -102,15 +139,29 @@ Membership: `SUBSCRIPTION_STARTED`, `_RENEWED`, `_UPGRADED`, `_FROZEN`,
 · Attendance: `CHECKED_IN`, `SESSION_BOOKED`, `SESSION_CANCELLED`,
 `CLASS_CANCELLED`
 · Coaching: `COACH_ASSIGNED`, `CHAT_MESSAGE`, `WORKOUT_ASSIGNED`,
+`WORKOUT_STARTED`, `WORKOUT_COMPLETED`, `WORKOUT_CANCELLED`,
 `TRAINING_PLAN_READY`, `NUTRITION_PLAN_READY`, `INBODY_RESULT`
-· Other: `WELCOME`, `BROADCAST`, and the two staff ones.
+· Other: `WELCOME`, `BROADCAST`, and the four employee ones.
+
+**For the coach's screens:** `STAFF_MEMBER_ASSIGNED` lands in the employee
+inbox (`GET /employee-notifications`) whenever a member becomes that coach's —
+from the dashboard's assign button *or* from a PT sale that auto-assigns.
+`data.memberId` deep-links to the member profile. The **previous** coach gets
+a separate "moved to another coach" notification, so a reassignment produces
+two rows for two different people; a reassignment to the same coach produces
+none.
 
 ### Scheduled (the sweep, every 15 min + on boot)
 
-`SUBSCRIPTION_EXPIRING` (7/3/1 days by default) · `SUBSCRIPTION_EXPIRED` ·
+`SUBSCRIPTION_EXPIRING` (**15/7/3/1 days** by default — 15 and 7 are the
+gym's asks, 3 and 1 are last-chance nudges; set `REMINDER_EXPIRY_DAYS` to
+change, e.g. `15,7` for only the two) · `SUBSCRIPTION_EXPIRED` ·
 `SESSION_REMINDER` (3h before) · `RATE_YOUR_SESSION` (attended, unrated, 1h–3d
-old) · `PAYMENT_DUE` (weekly while overdue) · `INBODY_DUE` (monthly, no test in
-30 days) · `SANDY_NUDGE` · `FOLLOW_UP_DUE` *(reserved — not wired yet)*.
+old) · `PAYMENT_DUE` (weekly while overdue) · `INBODY_DUE` (**the 1st of every
+month**, Amman time, from 10:00 — every member with a live membership is told
+to come in for an InBody; anyone who tested in the last 14 days is skipped
+until the next month. Tune with `REMINDER_INBODY_HOUR` /
+`REMINDER_INBODY_SKIP_IF_TESTED_DAYS`) · `SANDY_NUDGE` · `FOLLOW_UP_DUE` *(reserved — not wired yet)*.
 
 **Every scheduled send is deduplicated by a unique key**, so the sweep running
 96 times a day cannot spam anyone. `POST /notifications/reminders/run` with
