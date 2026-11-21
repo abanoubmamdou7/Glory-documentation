@@ -43,8 +43,7 @@ MEMBERSHIP_REQUIRED` or `429 SANDY_QUOTA_EXCEEDED`**.
     "sandyChat": true, "sandyDocuments": true
   },
   "sandy": {
-    "group": "MEMBER",
-    "daily":   { "limit": 50, "used": 3, "remaining": 47, "resetsAt": "2026-11-20T21:00:00.000Z" },
+    "daily":   { "limit": 20, "used": 3, "remaining": 17, "resetsAt": "2026-11-20T21:00:00.000Z" },
     "monthly": { "limit": null, "used": 31, "remaining": null, "resetsAt": "2026-11-30T21:00:00.000Z" }
   }
 }
@@ -74,7 +73,7 @@ MEMBERSHIP_REQUIRED` or `429 SANDY_QUOTA_EXCEEDED`**.
 | `newWorkoutPrograms`, `newNutritionPlans` | ACTIVE | information only: show "Renew to get new programmes / plans" when false |
 | `coachChatSend` | ACTIVE | the chat message box (history stays readable) |
 | `sandyChat` | quota left in both windows | the Sandy message box |
-| `sandyDocuments` | ACTIVE | "Upload medical file" in Sandy |
+| `sandyDocuments` | quota left (same as `sandyChat`; **every account**, member or not) | "Upload medical file" in Sandy |
 
 Per item, `canCheckIn` on a booking now also requires ACTIVE.
 
@@ -111,7 +110,7 @@ from memory. Order on every gated route: not yours → **404**; membership →
 | **Public** | no token |
 | **Account** | any signed-in account, any membership state (incl. FREE) |
 | **Read-only** | any account; reads the member's own history |
-| **Quota** | any account; metered by Sandy quota (§6) |
+| **Quota** | any account, member or not; metered by the same Sandy quota for everyone (§6) |
 | **Paid** | ACTIVE or PENDING_ACTIVATION |
 | **Active** | ACTIVE only |
 
@@ -142,12 +141,12 @@ from memory. Order on every gated route: not yours → **404**; membership →
 | `GET /mobile/group-classes` (timetable) | Read-only | — |
 | `GET /mobile/checkin/qr/:id` (poll a code already issued) | Read-only | — |
 | `POST /mobile/sandy/chat`, `/chat/stream` | Quota | 429 `SANDY_QUOTA_EXCEEDED` |
+| `POST /mobile/sandy/documents` (medical file) | Quota | 429 `SANDY_QUOTA_EXCEEDED` |
 | `POST /mobile/checkin/qr` | **Paid** | `GYM_ENTRY` |
 | `POST /mobile/bookings/:id/check-in` | **Active** | `PT_CHECK_IN` (PT/appointment), `CLASS_ENTRY` (class), `GYM_ENTRY` (gym booking) |
 | `POST /mobile/session-checkin/scan` | **Active** | `PT_CHECK_IN` |
 | `POST /mobile/workouts/:id/weight` | **Active** | `WORKOUT_LOG` |
 | socket `/chat` → `message:send` (member) | **Active** | `COACH_CHAT` (socket `error` event) |
-| `POST /mobile/sandy/documents` | **Active** | `SANDY_DOCUMENT` |
 | `POST /mobile/auth/review-signup` | retired | 403 `REVIEW_SIGNUP_RETIRED` |
 
 **Every member action that uses a gym service is gated**: gym entry, PT and
@@ -160,7 +159,8 @@ every state on purpose: they close out history, they do not use a service.
 
 **Pending members** can do exactly one thing more than FREE/EXPIRED/FROZEN:
 get the gym QR (and be activated by the reception scan, §5). Everything
-marked Active is locked for them; Sandy uses the LIMITED quota.
+marked Active is locked for them. Sandy (chat and medical files) works the
+same for every account.
 
 ### Deferred (not in A-lite; none are member-callable)
 
@@ -197,30 +197,35 @@ marked Active is locked for them; Sandy uses the LIMITED quota.
 
 ## 6. Sandy quota: `429 SANDY_QUOTA_EXCEEDED`
 
-| Group | Who | Per Amman day | Per month |
-| --- | --- | --- | --- |
-| `LIMITED` | FREE, PENDING_ACTIVATION, FROZEN, EXPIRED (and any account with no membership) | 5 | 50 |
-| `MEMBER` | ACTIVE only | 50 | no limit (none by default; the server can set one) |
+**The same limits for every account**, member or not, so a membership bought
+at the gym never unlocks more of Sandy in the app (App Store 3.1.1):
 
-(Server defaults; set by environment variables, see the handoff.)
+| Who | Per Amman day | Per month |
+| --- | --- | --- |
+| every account (FREE, PENDING_ACTIVATION, ACTIVE, FROZEN, EXPIRED) | **20** | no limit |
 
-- Counted: each message the member sends on `POST /mobile/sandy/chat` or
-  `/chat/stream` that is accepted. Deleting conversations does not give
-  messages back. Medical document uploads do not count.
+(Server defaults. The server can change them with `SANDY_LIMIT_DAILY` /
+`SANDY_LIMIT_MONTHLY`; there is no way to give members a different number.)
+
+- Counted: each accepted message on `POST /mobile/sandy/chat` or
+  `/chat/stream`, **and each medical file sent to** `POST /mobile/sandy/documents`
+  (one file = one message). Deleting conversations or files does not give
+  messages back.
 - Daily window resets at **00:00 Asia/Amman**, monthly on the 1st at 00:00
   Amman, computed from the time-zone rules (correct across daylight-saving
   changes). Use `resetsAt`, never a local calculation.
-- A refused message is neither stored nor counted. Parallel sends cannot go
-  past the limit.
+- A refused message or file is neither stored nor counted. Parallel sends
+  cannot go past the limit.
 - On `/chat/stream` the 429 is a **normal HTTP 429 JSON response**, returned
   before any stream opens.
+- `sandy.monthly.limit` / `remaining` are `null` while there is no monthly
+  limit. Show nothing about the month in that case.
 
 ```json
 { "success": false, "statusCode": 429, "error": "SANDY_QUOTA_EXCEEDED",
-  "period": "DAY", "limit": 5, "used": 5, "resetsAt": "2026-11-20T21:00:00.000Z",
+  "period": "DAY", "limit": 20, "used": 20, "resetsAt": "2026-11-20T21:00:00.000Z",
   "message": "…", "messageEn": "…", "messageAr": "…",
-  "upgradeHintEn": "Subscribe to a membership to chat with Sandy more.",
-  "upgradeHintAr": "اشترك في إحدى الباقات لتحصل على رسائل أكثر مع ساندي." }
+  "upgradeHintEn": null, "upgradeHintAr": null }
 ```
 
 | `period` | English | Arabic |
@@ -228,7 +233,12 @@ marked Active is locked for them; Sandy uses the LIMITED quota.
 | DAY | You've used all {limit} Sandy messages for today. You can chat again after midnight (Amman time). | استخدمت كل رسائل ساندي المتاحة لليوم ({limit} رسائل). يمكنك المتابعة بعد منتصف الليل بتوقيت عمّان. |
 | MONTH | You've used all {limit} Sandy messages for this month. Your messages renew at the start of next month. | استخدمت كل رسائل ساندي المتاحة لهذا الشهر ({limit} رسالة). تتجدد رسائلك مع بداية الشهر القادم. |
 
-`upgradeHintEn` / `upgradeHintAr` are `null` for the MEMBER group.
+`upgradeHintEn` / `upgradeHintAr` are **always `null`** (kept only so older
+builds don't break). Do not show any "subscribe for more messages" text.
+
+> Changed 2026-11-21: the `sandy.group` field (`LIMITED`/`MEMBER`) was removed
+> from `GET /mobile/membership`, and medical files are no longer limited to
+> active members.
 
 ## 7. Status codes, one meaning each
 
