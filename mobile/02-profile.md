@@ -143,6 +143,12 @@ subscriptions yet (sold at the gym).
 
 ## 10. `GET /mobile/body-records?type=…`
 
+> **`source` field (added 2026-09-03):** each record is `MANUAL` (entered by
+> staff on the dashboard — show `createdBy.fullName` as "اصدار بواسطة") or
+> `INBODY` (imported automatically from the gym's InBody device —
+> `createdBy` is `null`, show an "InBody" badge instead). Imported tests
+> also arrive as an in-app notification ("نتيجة فحص InBody جاهزة").
+
 - `type=IN_BODY_TEST` → **فحص تكوين الجسم** screen.
 - `type=BODY_MEASUREMENT` → **قياسات الحجم** screen.
 - Omit `type` → both. Paginated, newest first. Bad type → `400`.

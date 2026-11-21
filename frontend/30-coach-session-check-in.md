@@ -4,6 +4,25 @@
 marks the member present themselves, with no QR and nothing from the member's
 phone.
 
+## ⚠ Reception first (2026-11-03)
+
+**A PT session can only be marked attended after the member checked in at
+reception the same day** (gate QR or desk, Amman calendar day). This applies to
+all three options below and to the desk's own `POST /checkins`. Without it the
+call is **`403`** "This member has no reception check-in today…" — show it
+as-is and send the member to reception.
+
+**Admin exception:** an ADMIN may mark it anyway by sending a written reason:
+
+```json
+POST /coach-sessions/:bookingId/check-in
+{ "gymEntryOverrideReason": "Reception scanner was down" }
+```
+
+≥ 3 characters, stored on the check-in notes. For an admin, show a reason box
+when the `403` message mentions `gymEntryOverrideReason`; for a coach or staff
+there is no override — don't show the box.
+
 ## Three ways a PT session gets marked attended
 
 | # | Who acts | Endpoint | Use it when |
@@ -53,6 +72,7 @@ What that means for the screen:
 | Status | Meaning | What to show |
 | --- | --- | --- |
 | `403` | not this session's coach, and no `checkins.manage` | hide the button for sessions that aren't theirs |
+| `403` | no reception check-in today | "العضو لازم يسجّل دخول من الرسبشن الأول" — admins get a reason box (above) |
 | `404` | unknown session | refresh the day |
 | `409` | already checked in | the attended state (see above) |
 | `409` | not a PT booking / canceled | shouldn't be reachable from this list |

@@ -72,6 +72,11 @@ No body. **201:**
 - Encode `token` into the QR image client-side (any QR library — the backend
   only needs the raw string back via the scanner).
 
+> ⚠ **The QR scan can also be refused for an unpaid balance** (2026-09-24). The
+> desk's scan returns `403` and the member is not checked in; the poll below
+> keeps returning `PENDING` until the token expires. Tell them to see reception
+> — staff can record the visit there with a manager's approval.
+
 ### `GET /mobile/checkin/qr/:id`
 
 Poll this every ~1–2 seconds while the QR is on screen (`:id` is the `id`
@@ -112,8 +117,14 @@ let the code expire; the gym needs to sort out the membership first.
 ### `GET /mobile/bookings`
 
 Query: `page`, `limit`, `status` (`PENDING`|`PAID`|`UNPAID`|`CANCELED`),
-`sortOrder` (`desc` default = most recent first; pass `asc` for
-soonest-upcoming-first — handy for the home widget).
+`type` (`PT` | `CLASS` | `APPOINTMENT` | `GYM`), `sortOrder` (`desc`
+default = most recent first; pass `asc` for soonest-upcoming-first — handy
+for the home widget).
+
+**One tab per type → send `type`, don't filter on the device.** The private
+sessions tab calls `?type=PT`, the group classes tab `?type=CLASS`. The filter
+runs before pagination, so `meta.total` and the pages belong to that tab alone.
+`limit` is capped at 100.
 
 ```json
 { "id": "...", "type": "PT", "status": "PENDING", "channel": "APP",
@@ -182,6 +193,18 @@ Show: *"لقد تم دخولك للحصة بنجاح! أهلاً بك في عا�
 
 **400:** booking was canceled, or already checked in (button should already
 be greyed out per `canCheckIn`, same backstop pattern as cancel).
+
+**403 (new, 2026-09-24): the member owes money.** The gym now stores a single
+outstanding-balance rule that the front desk, the QR gate **and this endpoint**
+all obey, so the app can no longer be used to mark yourself present while
+blocked. The message is member-facing and ready to show as-is:
+
+> `You have 96.400 outstanding — please check in at the front desk.`
+
+There is **no override on the app side** (the person who may authorise one is at
+the desk), so on a 403 just show the message and point them at reception. Most
+gyms run the default `ALLOW_WARN` policy, where nothing is refused at all — so
+treat this as an occasional state, not a new step in the happy path.
 
 ---
 

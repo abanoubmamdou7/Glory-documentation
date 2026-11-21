@@ -26,6 +26,12 @@ member scans it** to mark themselves present.
 | 2 | Session detail | `GET /mobile/bookings/:id` |
 | 3 | **Scan to check in** | `POST /mobile/session-checkin/scan` |
 | 4 | Check in without a code (fallback) | `POST /mobile/bookings/:id/check-in` |
+
+⚠ **The coach can also mark the session attended from their own screen** (new
+2026-10-15, no code involved). So a booking can become `attended` without the
+member doing anything — refresh the card when the screen regains focus, and
+treat an "already checked in" error on the button or the scan as success rather
+than a failure. It usually means the coach got there first.
 | 5 | Cancel | `PATCH /mobile/bookings/:id/cancel` |
 | 6 | Rate the session | `POST /mobile/bookings/:id/rate` |
 | 7 | See a past rating | `GET /mobile/bookings/:id/rating` |
@@ -66,6 +72,13 @@ Show: *"تم تسجيل دخولك للحصة! مع الكوتش {instructor.ful
 | `403` another member's session | scanned the wrong screen | "الحصة دي مش بتاعتك" |
 | `400` canceled / already attended | the booking itself | reuse the existing booking-card copy |
 | `403` outstanding balance | the member owes money | show the message as-is — it points them at the front desk |
+| `403` "check in at reception first" | no gym entry today (2026-11-03) | "لازم تسجّل دخولك من الرسبشن الأول قبل الحصة" |
+
+⚠ **Reception first (2026-11-03).** Both the scan and the in-app button refuse
+a PT session until the member has checked in at reception (the gym QR) **the same
+day**. A refused scan does not burn the code — after the gym entry the member
+scans the same code again. Consider prompting "سجّل دخول الجيم الأول" with a
+link to the gym QR screen.
 
 ⚠ **The scan is not a bypass.** It runs the *same* check-in as the button, so
 every rule still applies — including the gym's outstanding-balance policy. A
@@ -86,11 +99,24 @@ and scan the same code again while it is still valid.
 
 ## 3. What the coach sees (for context — not mobile endpoints)
 
-The coach portal calls `GET /coach-sessions?date=` for the day's sessions,
+The coach portal calls **`POST /coach-sessions`** to book the session in the
+first place, `GET /coach-sessions?date=` for the day's sessions,
 `POST /coach-sessions/:bookingId/qr` to put a code on screen, and polls
 `GET /coach-sessions/:bookingId/qr/:tokenId` until it flips to `CONSUMED` —
 which is the coach's "✓ checked in" moment. Useful to know when you are
 demoing the two devices side by side.
+
+**Where a private session comes from** *(2026-10-01)*: the coach (or the front
+desk) books it. There is **no endpoint for a member to book their own PT
+session** — the app lists and attends sessions, it does not create them. So if
+a member asks for a session in the app, that is a conversation with the coach
+(the PT chat thread), not a booking call. A freshly booked session appears in
+`GET /mobile/bookings` straight away with `status: PAID` when the member's PT
+subscription covers it, or `PENDING` for a trial/complimentary one.
+
+A ready-to-run Postman file for the whole flow (book → show QR → scan →
+confirm, coach and member tokens both wired) ships as
+`postman/GloryGym-PrivateSessions.postman_collection.json`.
 
 ## 4. Rating, and the coach chat
 

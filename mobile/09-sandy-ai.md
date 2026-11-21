@@ -134,13 +134,17 @@ render page 1, then prepend page 2 above it, and so on.
 
 Sandy is given the caller's own live context automatically — name, active
 subscription and remaining days, assigned instructor, current workout
-assignment, plus gym data (branches, active packages, facilities, FAQs). So
-these all work without the app passing anything extra:
+assignment, their submitted first-login onboarding answers (see
+[07-onboarding.md](07-onboarding.md) — goals, injuries, training
+preferences, whatever the dashboard currently asks), plus gym data
+(branches, active packages, facilities, FAQs). So these all work without
+the app passing anything extra:
 
 - «فاضلي كام يوم في اشتراكي؟»
 - «مين الكابتن بتاعي؟»
 - «إيه الباقات المتاحة؟»
 - «الفرع فين؟»
+- «إيه اللي قولتهولك وقت التسجيل عن هدفي؟»
 
 Sandy is told to answer gym-specific questions **only** from that live data, so
 it won't invent prices or opening hours that aren't in the database.
@@ -163,3 +167,118 @@ it won't invent prices or opening hours that aren't in the database.
    `/sandy-ai/*`. Two separate token families, as everywhere else in this API.
 7. **`meta` is for debugging** (model, latency, chunk count) — don't show it in
    the member UI.
+
+---
+
+## Medical documents — Sandy reads files & remembers them
+
+Members can hand Sandy a **lab result (PDF)** or an **X-ray / scan (image)** and
+Sandy will read it, explain it in plain Jordanian Arabic, flag anything that
+matters for training safety, and **always tell them to see a doctor**. It then
+**remembers** it: the summary is stored privately on the member's profile and
+Sandy factors it into future advice (e.g. it won't program heavy pressing while
+a wrist injury is on file).
+
+> **Private to the member.** These documents and their summaries are never shown
+> on the dashboard — only the member and Sandy. There is no staff-facing view.
+
+> **Not a diagnosis.** Sandy explains + warns + refers. For an X-ray it will say
+> what the image *may* show and urge a doctor/ER — it will not declare "you have
+> a fracture." Present its reply as guidance, not a medical verdict.
+
+### The two-step flow
+
+1. **Upload the file** with the existing `POST /mobile/uploads` (multipart
+   `file`) → you get back a `url`.
+2. **Send that URL** to `POST /mobile/sandy/documents`:
+   ```json
+   { "fileUrl": "<url from step 1>", "note": "وقعت على إيدي وبتوجعني", "lang": "ar", "conversationId": "clx… (optional)" }
+   ```
+   Response:
+   ```json
+   {
+     "recordId": "clx…",
+     "kind": "IMAGING",
+     "title": "صورة أشعة لليد أو الرسغ",
+     "reply": "…اشرح + حذّر + روح للدكتور…",
+     "flags": [{ "severity": "high", "area": "اليد أو الرسغ", "note": "…" }],
+     "trainingCaution": true,
+     "meta": { "model": "…" }
+   }
+   ```
+   Render `reply` as Sandy's chat bubble. If you pass `conversationId`, the
+   upload + reply are also written into that thread, so the file "appears" in
+   the chat history.
+
+### Managing stored documents
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/mobile/sandy/documents` | The member's own stored docs (paginated) |
+| `GET` | `/mobile/sandy/documents/:id` | One doc: summary, extracted facts, flags |
+| `DELETE` | `/mobile/sandy/documents/:id` | Delete a doc and its memory |
+
+A "My health files" screen can list these; deleting one removes it from Sandy's
+memory too.
+
+### Gotchas
+
+- **Upload PDFs to a host that actually serves them.** Cloudinary (the default
+  upload target) **blocks PDF delivery** unless the account enables *Settings →
+  Security → "Allow delivery of PDF and ZIP files"*. Until then, PDF analysis
+  fails with a fetch error; images are unaffected.
+- **Scanned/photo PDFs** with no text layer are rejected — tell the member to
+  upload them as an image instead (the vision path handles those).
+- **`trainingCaution: true`** means Sandy advised pausing training of some area
+  until a doctor clears it — a good cue to show a small warning banner.
+- **Max 15 MB per file.**
+
+---
+
+## Streaming replies (SSE) — `POST /mobile/sandy/chat/stream`
+
+For a live typing effect, use the streaming endpoint instead of `POST
+/mobile/sandy/chat`. Same body (`{ message, conversationId? }`), same auth
+(`{{memberAccessToken}}`), but the answer arrives token-by-token as
+**Server-Sent Events** (`Content-Type: text/event-stream`).
+
+**Frames** (each is an `event:` line + a `data:` JSON line, blank-line
+separated):
+
+| `event:` | `data` | What to do |
+| --- | --- | --- |
+| `delta` | `{ "text": "…" }` | Append `text` to the visible bubble. A refusal/error answer comes as **one** delta. |
+| `done`  | `{ conversationId, messageId, citations, refusalReason, meta }` | Generation finished + persisted. Now render citation chips + the `refusalReason` badge. |
+| `end`   | `{}` | Always last — stop reading. |
+| `error` | `{ message, statusCode }` | Only if the stream couldn't start (e.g. a `conversationId` that isn't yours). No `delta`/`done` will come. |
+
+**Client notes**
+
+- **`citations` and `refusalReason` are only in `done`** — not on the deltas.
+  Show the streamed text first, then decorate on `done`.
+- **First delta can lag** a few seconds on a reasoning model (it reasons before
+  emitting). Show a "typing…" indicator until the first `delta`.
+- **Always 200 once open.** Don't rely on HTTP status for the foreign-thread
+  case — branch on `event: error` instead.
+- **Flutter:** use a streaming HTTP client (e.g. `http.Client().send(request)`
+  and read `response.stream`), not `EventSource` — you need to send the bearer
+  header and a POST body. Split the byte stream on `\n\n`, then parse each
+  frame's `event:`/`data:` lines.
+- The turn is persisted server-side exactly like the non-streamed `/chat`, so
+  it appears in `GET /mobile/sandy/conversations/:id/messages` afterward.
+
+---
+
+## Message formatting — plain text with emoji sections (no Markdown)
+
+Sandy's answers are written as **clean plain text**, not Markdown: emoji section
+headers (e.g. `🍳 الفطور`, `💪 التمرين`, `📈 المتابعة`), `- ` bullets, blank
+lines between short sections, and a few tasteful emojis. It deliberately does
+**not** emit Markdown headings (`###`) or `**bold**`, because those render as
+literal characters when the app shows the text as-is — so you can display
+`answer` directly and it looks organized with no Markdown parser needed.
+
+If you later add a Markdown renderer on the client, the output still renders
+fine (the emoji headers and hyphen bullets are valid Markdown too) — but it is
+**not required**. Render `answer` verbatim (RTL, `dir="auto"`) and it will look
+like the meal-plan/checklist layout members expect.

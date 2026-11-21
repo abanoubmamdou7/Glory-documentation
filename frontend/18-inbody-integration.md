@@ -39,16 +39,26 @@ code**, so the device already knows them.
 
 | # | Where | What |
 | --- | --- | --- |
-| 1 | LookinBody Web → WebAPI site (`apieur.lookinbody.com`) → SETUP | Generate the **API access key** (needs the LB Web admin login). |
-| 2 | same page | **Register Customer IP Address** — whitelist the Glory API server's public IP. LookinBody rejects calls from any other address (you'll see it as a `502` "rejected the API key / account (401)" on Test Connection). |
+| 1 | LookinBody Web → WebAPI site (`apieur.lookinbody.com`) → SETUP | Generate the **API access key** (needs the LB Web admin login). ⚠ **The WebAPI is a paid InBody service.** The LB Web account's WebAPI subscription must be active (a trial account pays on the WebAPI site's *Payment* page) and InBody must approve the API application — until then the key generates fine but every real call answers `401 "You do not have permission to access this service. Please contact our support team"`. |
+| 2 | same page | **Register Customer IP Address** — whitelist the Glory API server's public *origin* IP (ask the backend team — it is the VPS address, not Cloudflare's). LookinBody rejects calls from any other address with the **same generic `401`** as an inactive subscription. |
 | 3 | same page → Webhook Setup | URL `https://<glory-api>/webhooks/inbody`; add header `X-InBody-Secret: <secret>` (or use `…/webhooks/inbody?token=<secret>`); run InBody's "Operation test". |
 | 4 | Glory `.env` | `INBODY_API_KEY`, `INBODY_ACCOUNT` (the LB Web account ID), `INBODY_WEBHOOK_SECRET` (same secret as step 3). Region host stays `INBODY_API_BASE_URL=https://apieur.lookinbody.com`. |
-| 5 | Dashboard | `POST /inbody/test-connection` → `ok: true`. Then take one real test and check `GET /inbody/events`. |
+| 5 | Dashboard | `POST /inbody/test-connection` → `ok: true` **and `authorized: true`**. `reachable: true` alone means nothing — LookinBody's `/user/test` answers "success" to anyone, even with no headers. While `authorized: false`, see the box below. Then take one real test and check `GET /inbody/events`. |
 | 6 | Dashboard (optional) | For members who already have InBody history: `POST /inbody/members/:id/pull` to backfill. |
 
 Until step 4 is done, every `/inbody/*` call and the webhook return `503`
 with a message saying which variable is missing — `GET /inbody/status`
 shows `configured: false`. Nothing else in the dashboard is affected.
+
+**While LookinBody still answers `401` (`authorized: false`) nothing is
+lost:** members can keep taking tests on the device with their **member
+code as the InBody User ID** — the results live in LookinBody Web and are
+backfilled later with `POST /inbody/members/:id/pull` once the service is
+enabled. A webhook that fires meanwhile is stored as a `FAILED` event
+(the fetch of the full result is what fails) and `POST /inbody/events/:id/
+retry` imports it afterwards. If a result is needed on the profile
+*today*, use the manual fallbacks: `POST /members/:id/body-records` or
+the InBody **PDF import** `POST /members/:id/body-records/import-pdf`.
 
 ## 3. Suggested screens
 

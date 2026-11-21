@@ -13,7 +13,7 @@
 
 | # | Method / event | Screen |
 | --- | --- | --- |
-| 1 | `GET /mobile/chat/conversations` | Chat list (normally just one thread) |
+| 1 | `GET /mobile/chat/conversations` | Chat list — one thread per coach (gym + PT) |
 | 2 | `GET /mobile/chat/conversations/:id/messages` | Message history |
 | 3 | `PATCH /mobile/chat/conversations/:id/read` | Opening the thread (mark read) |
 | 4 | `GET /mobile/chat/unread-count` | Chat tab badge |
@@ -28,17 +28,30 @@
   { "id": "...", "memberId": "...", "instructorId": "...",
     "createdAt": "...", "lastMessageAt": "2026-08-10T09:15:00.000Z",
     "instructor": { "id": "...", "fullName": "Coach Ahmed", "avatarUrl": null },
+    "coachTypes": ["PT"],
     "unreadCount": 2 }
 ]
 ```
 
-Ordered newest-activity-first. In practice this is a **single-item array**
-for almost every member — the "current instructor" thread. If a member was
-ever reassigned to a different instructor, the old thread stays in this list
-(for history) below the new one; don't assume index `0` is always "the"
-conversation to open by default without checking `lastMessageAt`/whether the
-instructor still matches the member's current one if you surface that
-elsewhere in the app.
+Ordered newest-activity-first.
+
+⚠ **This is no longer a single-item array (2026-09-29).** A member now has
+**two coach slots** — their gym coach and, if they bought personal training, a
+separate PT coach — so a PT client legitimately has **two live threads**.
+Render the list; don't open `conversations[0]` as "the" chat.
+
+**`coachTypes`** tells you what each thread is:
+
+| `coachTypes` | Meaning | Suggested label |
+| --- | --- | --- |
+| `["GENERAL"]` | the gym coach | كوتش الجيم |
+| `["PT"]` | the personal trainer | كوتش التمارين الخاصة |
+| `["GENERAL","PT"]` | one coach holds both roles | either — it is one thread, don't duplicate it |
+| `[]` | a **former** coach; the history is kept | كوتش سابق |
+
+It is computed per request from the member's current slots, so it never goes
+stale after a reassignment. Threads with a former coach stay in the list below
+the live ones.
 
 ## 2. `GET /mobile/chat/conversations/:id/messages`
 

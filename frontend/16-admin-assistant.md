@@ -20,11 +20,23 @@ purpose — don't merge them in the UI.
 
 ## Access & safety (what to tell the user)
 
-- **ADMIN only.** A `STAFF` or `INSTRUCTOR` token gets **`403`**. If your app has
-  non-admin dashboard users, hide the assistant entirely for them.
+- **Gated by the `assistant.use` permission** (2026-09-12; ADMIN bypasses and
+  keeps full access). A user **without** `assistant.use` gets **`403`** on every
+  route — gate the nav item on that permission (or the ADMIN role). Grant it
+  from Team Management like any other permission.
+- **Permission-aware — this is new (2026-09-12).** *Which* tables a caller can
+  query is scoped by their **other** permissions. An **accountant**
+  (`invoices.read` / `payments.manage` / `reports.view`) can ask about billing,
+  finance and business metrics but **not** staff/HR data; an **HR** user
+  (`staff.read` / `attendance.view.*` / `organization.view`) can ask about staff
+  but **not** revenue or salaries. An accountant asking an HR question (or
+  vice-versa) is **refused** with `error: "PERMISSION_SCOPE"` and the answer
+  names the areas that caller *can* ask about. **ADMIN / grant-all** users reach
+  everything readable. See the full map in
+  [16a-admin-assistant-permissions.md](16a-admin-assistant-permissions.md).
 - **Read-only.** It can never change, add, or delete anything — only read. It
-  also cannot see passwords, tokens, OTP codes, or other secrets (blocked at the
-  server, even for admins).
+  also cannot see passwords, tokens, OTP codes, or **members' medical records**,
+  or other secrets (blocked at the server for **every** caller, ADMIN included).
 - It only answers questions about the gym's data. Anything else (general
   knowledge, "delete all members", "show passwords") comes back as a polite
   refusal — see `error` below.
@@ -100,6 +112,7 @@ refusals and failures. Branch on the `error` field, not on the status code:
 | --- | --- | --- |
 | `null` | Normal answer. | Render `answer` (+ optional `sql`/`rows`). |
 | `OUT_OF_SCOPE` | Question isn't about the gym's data (general knowledge, or a destructive request the model refused). | Render `answer` (already a friendly "I can only answer questions about your gym's data"). Don't show it as an error. |
+| `PERMISSION_SCOPE` | Question **is** about the gym's data but concerns an area this caller has no permission for (e.g. an accountant asking about staff/HR). | Render `answer` — it already says what they *can* ask about. Don't show it as an error. |
 | `UNSAFE_SQL: …` | The model produced a query the guard rejected. | Render `answer` ("couldn't turn that into a safe query, try rephrasing"). |
 | `EXEC_ERROR: …` | The query failed to run (e.g. too vague). | Render `answer` ("the query failed, be more specific"). |
 | `GENERATION_ERROR` | The AI provider errored while writing the query. | Render `answer` ("something went wrong, try again"). |
@@ -111,8 +124,8 @@ decide whether to also show the `sql`/`rows` details (only meaningful when
 
 **Real HTTP errors** (handle these the usual way):
 `400` empty/too-long message · `401` no/expired token (refresh & retry — see
-[../README.md](../README.md)) · `403` the user isn't an ADMIN ·
-`404` a `conversationId` that isn't this admin's.
+[../README.md](../README.md)) · `403` the user lacks `assistant.use` ·
+`404` a `conversationId` that isn't this caller's.
 
 ### Example questions that work
 
@@ -130,16 +143,18 @@ These all return real answers from the database:
 
 ## 2. `GET /admin-assistant/schema` — what it can read (optional)
 
-Returns the tables the assistant is allowed to query and the blocked ones.
-Useful only if you want to show the user a "you can ask about…" hint. Not needed
-for the chat to work.
+Returns the tables the assistant is allowed to query **for the calling user**
+(scoped by their permissions — 2026-09-12) and the blocked ones. Useful if you
+want to show a "you can ask about…" hint that matches what *this* user can
+actually see. Not needed for the chat to work. An accountant and an HR user get
+**different** `tables` lists; ADMIN gets the full set.
 
 ```json
 {
   "success": true,
   "data": {
-    "tables": ["Booking", "Branch", "Invoice", "Member", "Package", "Payment", "Subscription", "User", "..."],
-    "blockedTables": ["RefreshToken", "MemberRefreshToken", "MemberOtp", "GymCheckInToken", "_prisma_migrations"],
+    "tables": ["Branch", "Invoice", "Member", "Package", "Payment", "Subscription", "Transaction", "..."],
+    "blockedTables": ["RefreshToken", "MemberRefreshToken", "MemberOtp", "GymCheckInToken", "MemberMedicalRecord", "_prisma_migrations"],
     "blockedColumns": ["password", "embedding", "searchvector", "codehash", "tokenhash", "secret", "refreshtoken"]
   }
 }
@@ -238,8 +253,11 @@ real-time layer (this is plain request/response, no Socket.IO):
   If you render `rows` yourself, money columns are decimal strings.
 - **Latency** — a few seconds per answer is normal (two model calls). Disable
   the send button while awaiting.
-- **Scope** — this is admin-only. If you accidentally show it to a non-admin,
-  every send returns `403`; gate the nav item on the ADMIN role instead.
+- **Scope** — gate the nav item on the `assistant.use` permission (ADMIN always
+  has it). A user without it gets `403` on every route. And remember the
+  per-caller table scoping: a scoped user's out-of-area question comes back as a
+  `200` with `error: "PERMISSION_SCOPE"`, not a `403` — see
+  [16a-admin-assistant-permissions.md](16a-admin-assistant-permissions.md).
 - **Availability** — if `error` is `PROVIDER_NOT_CONFIGURED`, the server has no
   AI credentials yet; the feature is effectively off until an admin sets them.
 

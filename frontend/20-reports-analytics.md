@@ -69,11 +69,32 @@ attributed to the employee in that month (negative = exceeded).
 - Employee dashboard: a **Check in** button → `POST /staff-attendance/check-in`
   (409 if already in today), **Check out** → `POST /staff-attendance/check-out`
   (404 no check-in today, 409 already out). `GET /staff-attendance/me` for
-  the employee's own history.
+  the employee's own history. **Any employee token** — no permission key.
 - HR: manual day entry `POST /staff-attendance { userId, date, checkInAt,
   checkOutAt? }`, edit `PATCH /staff-attendance/:id`, delete.
 - One row per employee per calendar day; `hours` is null while the day is
-  still open.
+  still open. Rows carry `branch: { id, nameEn, nameAr } | null`.
+
+### 4.1 Who sees what (added 2026-09-12)
+
+`GET /permissions` publishes a **"Staff Attendance"** group with four keys.
+Assign them with `PUT /{admins|staff|instructors}/:id/permissions` — the
+key **or its label** is accepted, the API stores and returns the key — and
+read them back with `GET /{role}/:id/permissions` or `/auth/me`
+(`permissions: string[]`). Pick the page's tier from the keys client-side;
+the server enforces the same rule:
+
+| Key (label) | `/staff-attendance` list + export | Manual entry / edit / delete |
+| --- | --- | --- |
+| `attendance.view.own` (View Own Attendance) — or no key at all | `403` → show only the **Check in / Check out** buttons + `GET /me` | `403` |
+| `attendance.view.team` (View Team Attendance — Head Sales / Head Coach / manager) | the caller + direct reports (`reportingToId`, dotted-line managers) + own department + branches the caller manages; a `userId` outside that → `403` | `403` |
+| `attendance.view.all` (View All Attendance) | everyone | `403` |
+| `attendance.manage` (Manage Attendance — HR), the legacy `staff.manage`, or ADMIN | everyone | ✅ |
+
+Widest granted tier wins; ADMIN bypasses. The **Reports → Staff** screen
+(`/reports/staff/{list,export}`) is *not* scoped — it stays behind
+`reports.view` like every other report. Gotcha: `staff.read` alone used to
+open `GET /staff-attendance`; since 2026-09-12 it no longer does.
 
 ## 5. Gotchas
 
