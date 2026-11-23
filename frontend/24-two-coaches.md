@@ -6,8 +6,8 @@ have **two slots**: the general/gym coach they get on joining, and a separate
 
 | Slot | Field | Set by |
 | --- | --- | --- |
-| `GENERAL` | `Member.assignedInstructorId` | the desk — `POST /chat/assign-instructor` |
-| `PT` | `Member.ptInstructorId` | **selling a PT package with an instructor** (automatic), or `POST /chat/assign-instructor` with `type: "PT"` |
+| `GENERAL` | `Member.assignedInstructorId` | **any sale with an instructor** (automatic, since 2026-11-23), or the desk — `POST /chat/assign-instructor` |
+| `PT` | `Member.ptInstructorId` | by hand only — `POST /chat/assign-instructor` with `type: "PT"` |
 
 Both may point at the same person; usually they don't.
 
@@ -56,13 +56,14 @@ never exist without a coach.
 
 Rules that protect the desk's decisions:
 
-- A **gym/class sale** that names a trainer does **not** make them the
-  member's coach. Only PT sales assign.
+- **Any sale** (GYM, PT or CLASS) that names a trainer makes them the
+  member's **gym (GENERAL)** coach (2026-11-23). Sales no longer set the PT
+  slot; the desk sets it by hand.
 - A **renewal or upgrade** copies the old sale's trainer forward, which is not
-  a fresh decision — it fills the PT slot only if it is empty. It will **not**
+  a fresh decision — it fills the gym-coach slot only if it is empty. It will **not**
   undo a manual reassignment made in the meantime.
-- A **clerical correction** — `PATCH /subscriptions/:id { instructorId }` on a
-  PT sale — *does* move the member's PT coach, so the sale and the profile
+- A **clerical correction** — `PATCH /subscriptions/:id { instructorId }` —
+  *does* move the member's gym coach, so the sale and the profile
   never disagree.
 - The PT slot is **not cleared when the PT subscription expires**. Show it
   with the subscription's own status if you need to distinguish "current
@@ -106,5 +107,5 @@ re-assign anyone.
 - [ ] Chat screens iterate the conversation list; label from `coachTypes`.
 - [ ] `assignedInstructor` still means the **gym** coach everywhere.
 - [ ] Don't send `type` unless you mean PT — omitting it is GENERAL.
-- [ ] A PT sale form's "instructor" field is now a real assignment, not just
-      attribution. Say so in the UI.
+- [ ] A sale form's "instructor" field (any package type) is a real
+      gym-coach assignment, not just attribution. Say so in the UI.
