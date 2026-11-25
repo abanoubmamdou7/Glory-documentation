@@ -107,13 +107,14 @@ socket.on('message:new', (message) => {
   // incoming ones. Check message.senderType to tell which.
 });
 
-socket.on('error', ({ message }) => {
-  // token invalid/expired -> the socket disconnects right after this;
-  // re-authenticate (refresh the access token) and reconnect.
+socket.on('error', (e) => {
+  // e.clientMessageId -> mark that bubble failed, show e.message
+  // e.error === 'UNAUTHORIZED' -> the socket disconnects right after this;
+  // refresh the access token and reconnect.
 });
 
-function sendMessage(conversationId, body) {
-  socket.emit('message:send', { conversationId, body });
+function sendMessage(conversationId, body, clientMessageId) {
+  socket.emit('message:send', { conversationId, body, clientMessageId });
 }
 ```
 
@@ -126,9 +127,34 @@ function sendMessage(conversationId, body) {
 - **Every signed-in account may send** (since 2026-11-25): FREE, EXPIRED,
   FROZEN and PENDING_ACTIVATION included, same as ACTIVE. The only checks are
   that the conversation is the member's own, and the body rules above.
-- An `error` event right after `message:send` means that message was **not**
-  stored (not your conversation, empty or too long body). Mark it failed in
-  the thread; don't leave it "sending".
+- An `error` event after `message:send` means that message was **not**
+  stored. Every refusal uses one payload:
+
+  ```json
+  {
+    "statusCode": 404,
+    "error": "CONVERSATION_NOT_FOUND",
+    "message": "هذه المحادثة لم تعد متاحة.",
+    "messageEn": "This conversation is no longer available.",
+    "messageAr": "هذه المحادثة لم تعد متاحة.",
+    "event": "message:send",
+    "conversationId": "cmx…",
+    "clientMessageId": "tmp-42"
+  }
+  ```
+
+  | `error` | When | What the app does |
+  | --- | --- | --- |
+  | `UNAUTHORIZED` (401) | token missing/expired, account not active | socket disconnects; refresh the token, reconnect, resend |
+  | `VALIDATION_FAILED` (400) | empty body, > 2000 chars; `errors` lists the rules | mark the bubble failed, show `message` |
+  | `CONVERSATION_NOT_FOUND` (404) | not the member's conversation (e.g. coach changed) | mark failed, reload the conversations list |
+  | `SEND_FAILED` (500) | unexpected server error | mark failed with a retry button |
+
+  Send your own `clientMessageId` (≤ 100 chars) with each message; it comes
+  back on `error` so you know which pending bubble failed. Pass `lang: 'ar'`
+  in the socket `auth` (next to `token`) to get `message` in Arabic;
+  `messageEn` / `messageAr` are always both present. Also stop the spinner
+  after ~15 s with no `message:new` and no `error` (connection dropped).
 - If the app is backgrounded/offline when a message arrives, it's still
   safely in `ChatMessage` — call `GET .../messages` on resume/foreground to
   catch up rather than relying on having been connected the whole time.
