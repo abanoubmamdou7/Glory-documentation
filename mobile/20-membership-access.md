@@ -45,6 +45,10 @@ MEMBERSHIP_REQUIRED` or `429 SANDY_QUOTA_EXCEEDED`**.
   "sandy": {
     "daily":   { "limit": 20, "used": 3, "remaining": 17, "resetsAt": "2026-11-20T21:00:00.000Z" },
     "monthly": { "limit": null, "used": 31, "remaining": null, "resetsAt": "2026-11-30T21:00:00.000Z" }
+  },
+  "settingsItems": {
+    "inbody": true, "nutritionPlans": false, "bodyRecords": true,
+    "subscriptions": true, "privateSessions": false
   }
 }
 ```
@@ -61,6 +65,7 @@ MEMBERSHIP_REQUIRED` or `429 SANDY_QUOTA_EXCEEDED`**.
 | `membershipType` | `GYM`, `PT`, `CLASS`, `APP`, `ASSESSMENT` — every type counts as membership |
 | `sandy.*.limit` / `remaining` | `null` = no limit |
 | `sandy.*.resetsAt` | ISO instant of Amman midnight (day) / the 1st of next month 00:00 Amman |
+| `settingsItems` | Which rows of the Settings screen to show **for this account** (added 2026-11-25). `false` = remove the row; if the screen is opened from a link or a notification, go to Home. Set from the dashboard per audience: members (ACTIVE / PENDING_ACTIVATION) and non-members (FREE / EXPIRED / FROZEN). All `true` until someone turns a switch off. Hiding a row does **not** close its endpoint or touch its data. Keys: `inbody`, `nutritionPlans`, `bodyRecords`, `subscriptions`, `privateSessions` — treat an unknown or missing key as `true`. A change shows on the next call. |
 
 ### `canUse` → what to lock
 
@@ -71,7 +76,7 @@ MEMBERSHIP_REQUIRED` or `429 SANDY_QUOTA_EXCEEDED`**.
 | `classEntry` | ACTIVE | class check-in |
 | `workoutLogging` | ACTIVE | "اضافة وزن" |
 | `newWorkoutPrograms`, `newNutritionPlans` | ACTIVE | information only: show "Renew to get new programmes / plans" when false |
-| `coachChatSend` | ACTIVE | the chat message box (history stays readable) |
+| `coachChatSend` | **always `true`** since 2026-11-25 (kept for older builds; treat the box as always open) | the chat message box |
 | `sandyChat` | quota left in both windows | the Sandy message box |
 | `sandyDocuments` | quota left (same as `sandyChat`; **every account**, member or not) | "Upload medical file" in Sandy |
 
@@ -146,7 +151,7 @@ from memory. Order on every gated route: not yours → **404**; membership →
 | `POST /mobile/bookings/:id/check-in` | **Active** | `PT_CHECK_IN` (PT/appointment), `CLASS_ENTRY` (class), `GYM_ENTRY` (gym booking) |
 | `POST /mobile/session-checkin/scan` | **Active** | `PT_CHECK_IN` |
 | `POST /mobile/workouts/:id/weight` | **Active** | `WORKOUT_LOG` |
-| socket `/chat` → `message:send` (member) | **Active** | `COACH_CHAT` (socket `error` event) |
+| socket `/chat` → `message:send` (member) | **Account** | none (own conversation, non-empty body, max length) |
 | `POST /mobile/auth/review-signup` | retired | 403 `REVIEW_SIGNUP_RETIRED` |
 
 **Every member action that uses a gym service is gated**: gym entry, PT and
@@ -169,7 +174,7 @@ same for every account.
 | Staff-side gates + override permission/audit | desk `POST /checkins` CLASSES/APPOINTMENTS, coach check-in `POST /coach-sessions/:id/check-in`, `POST /coach-sessions` | staff decide; no membership check |
 | Coach sending to a lapsed member | socket `message:send` (coach side) | allowed |
 | Staff assigning new workouts / nutrition plans, the automatic nutrition draft after InBody | dashboard | allowed for any member (`newWorkoutPrograms`/`newNutritionPlans` are information only) |
-| Item flags `canJoin` (classes) and `canSend` (conversations) | timetable, chat list | not sent; use `canUse.classEntry` / `canUse.coachChatSend` |
+| Item flag `canJoin` (classes) | timetable | not sent; use `canUse.classEntry` |
 | Dashboard-editable Sandy limits | `/settings/sandy-limits` | limits come from server environment variables |
 | Which package types count as membership | decision D3 | every type counts (see the handoff) |
 

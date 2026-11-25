@@ -55,6 +55,7 @@ verified against a running server — nothing is speculative.
 | [frontend/29-notifications-and-push.md](frontend/29-notifications-and-push.md) | Notifications & device push (2026-10-03): the inbox-first delivery model, the mobile/staff device-registration checklist, the published 50-event catalog (`GET /notifications/events`), the reminder sweep and its dedupe keys, diagnosing under-delivery with `reach.coveragePct`, and what is deliberately never put in a notification |
 | [frontend/30-coach-session-check-in.md](frontend/30-coach-session-check-in.md) | Marking a PT session attended (2026-10-15): the coach's manual check-in next to the QR and in-app routes, the once-per-session rule and how the UI should treat a 409, every error, and the two limits (one appointment a day, no coach-side undo) |
 | [frontend/31-audit-log.md](frontend/31-audit-log.md) | Audit log (2026-11-23): every dashboard action recorded automatically — the log table, entry details with field-by-field changes, stats, filters, a record’s history, my activity, CSV/XLSX export |
+| [frontend/32-app-settings-screen-switches.md](frontend/32-app-settings-screen-switches.md) | App Settings-screen switches (2026-11-25): show or hide five rows of the mobile Settings screen, separately for members and non-members |
 
 ### `mobile/` — Mobile app developers
 

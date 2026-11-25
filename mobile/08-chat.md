@@ -123,6 +123,12 @@ function sendMessage(conversationId, body) {
 - `body` is required, plain text, max 2000 characters — there is no
   attachment/image support (matches "text only" in the spec this feature
   was built from).
+- **Every signed-in account may send** (since 2026-11-25): FREE, EXPIRED,
+  FROZEN and PENDING_ACTIVATION included, same as ACTIVE. The only checks are
+  that the conversation is the member's own, and the body rules above.
+- An `error` event right after `message:send` means that message was **not**
+  stored (not your conversation, empty or too long body). Mark it failed in
+  the thread; don't leave it "sending".
 - If the app is backgrounded/offline when a message arrives, it's still
   safely in `ChatMessage` — call `GET .../messages` on resume/foreground to
   catch up rather than relying on having been connected the whole time.
