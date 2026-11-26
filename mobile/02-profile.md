@@ -105,22 +105,23 @@ sequenceDiagram
 
 ## 7–8. Delete account ("اثبات هويتك")
 
-Step 1 — `POST /mobile/profile/delete-account/request` (no body): sends the
-code to the **current** email → standard OTP response. The "اثبات هويتك"
-screen is this code's entry.
+Step 1 — `POST /mobile/profile/delete-account/request` (no body):
+- `method: "EMAIL_CODE"` → a code went to the current email; show the code field.
+- `method: "PASSWORD"` → the account has no email (created at the gym desk);
+  nothing was sent; show a password field.
 
-Step 2 — `DELETE /mobile/profile/delete-account/confirm` with
-`{ "code": "123456" }`:
+Step 2 — `DELETE /mobile/profile/delete-account/confirm` with `{ "code": "123456" }`
+or `{ "password": "…" }` (exactly one; the password works for every account):
 
-- **200** `{ "message": "Account deleted" }` — wipe local storage, go to
-  signup. Personal data (family, body records, sessions, feedback) is deleted.
-- **409** — the account has gym business records (subscriptions/bookings):
-  `...cannot be deleted from the app — please contact the gym`. Show that
-  message; nothing was deleted.
-- **400** wrong/expired code.
+- **200** `{ "message": "Account deleted", "mode": … }` — wipe local storage,
+  go to sign-up. Works for **every** member, including ones with
+  subscriptions: their personal data is deleted and the gym keeps its
+  invoices/visits anonymised.
+- **400** `CURRENT_PASSWORD_INCORRECT`, wrong/expired code, or
+  `VALIDATION_FAILED` when neither or both were sent.
 
-> ⚠ Codes are **single-use**: after a 409 (or any consumed attempt) you must
-> call `request` again for a fresh code before retrying.
+> ⚠ Codes are **single-use**: after a wrong attempt that consumed it, call
+> `request` again for a fresh code.
 
 ## 9. `GET /mobile/subscriptions` — "اشتراكاتي"
 

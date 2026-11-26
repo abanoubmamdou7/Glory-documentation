@@ -206,23 +206,31 @@ No guest login or token. Without a token only these answer; every other
 | `GET /mobile/content/contact` | contact methods |
 | `GET /mobile/videos`, `/mobile/videos/categories`, `/mobile/videos/:id` | public video library |
 
-## Account deletion (current behaviour; R0-2 not built)
+## Account deletion (works for every account since 2026-11-26)
 
 ```
-delete-account/request ─200─▶ (code by email) ─▶ delete-account/confirm {code} ─200─▶ clear tokens → welcome
+delete-account/request ─200─▶ method EMAIL_CODE → code by email → confirm {code}
+                          └─▶ method PASSWORD   → (nothing sent) → confirm {password}
+confirm ─200─▶ clear tokens → welcome
 ```
 
 - **11. `POST /mobile/profile/delete-account/request`** — Bearer, no body →
-  `200 { email, purpose: "ACCOUNT_DELETE", expiresInSeconds, resendCooldownSeconds }`.
-  Errors: `ACCOUNT_NO_EMAIL`, `OTP_COOLDOWN`, `EMAIL_DELIVERY_UNAVAILABLE`.
-- **12. `DELETE /mobile/profile/delete-account/confirm`** — Bearer +
-  `{ "code" }` → `200 { "message": "Account deleted" }`. Errors:
-  `OTP_NOT_REQUESTED`, `OTP_INCORRECT`, `OTP_EXPIRED`, `OTP_ATTEMPTS_EXCEEDED`,
-  `ACCOUNT_HAS_RECORDS` (**today only**), `TOKEN_INVALID`.
-- A code works once, even when the answer is `ACCOUNT_HAS_RECORDS`; request
-  a new one to retry (the retry with the old code answers `OTP_NOT_REQUESTED`).
-- The endpoints and shapes stay the same after R0-2; `ACCOUNT_HAS_RECORDS`
-  disappears.
+  `200 { method: "EMAIL_CODE", email, purpose, expiresInSeconds, resendCooldownSeconds }`
+  or, for an account with no email (gym-desk members),
+  `200 { method: "PASSWORD", email: null, purpose }`. Show a code field or a
+  password field depending on `method`. Errors: `ACCOUNT_NO_EMAIL` (no email
+  and no password: contact the gym), `OTP_COOLDOWN`, `EMAIL_DELIVERY_UNAVAILABLE`
+  (offer the password instead).
+- **12. `DELETE /mobile/profile/delete-account/confirm`** — Bearer + exactly one
+  of `{ "code" }` or `{ "password" }` → `200 { "message": "Account deleted", "mode": "DELETED" | "ANONYMISED" }`.
+  Both modes mean the account is gone for the member; `ANONYMISED` only says
+  the gym kept its financial records without any personal data. Errors:
+  `VALIDATION_FAILED` (none or both), `CURRENT_PASSWORD_INCORRECT`,
+  `PASSWORD_NOT_SET`, `OTP_NOT_REQUESTED`, `OTP_INCORRECT`, `OTP_EXPIRED`,
+  `OTP_ATTEMPTS_EXCEEDED`, `TOKEN_INVALID`. `ACCOUNT_HAS_RECORDS` no longer
+  occurs.
+- The password is accepted from any account, so if the email does not arrive
+  the member can confirm with the password.
 
 ## Profile flows that share these codes
 
